@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Secure Messaging App | AES + RSA</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="header-content">
+            <div>
+                <h1>🔐 Secure Messaging</h1>
+                <p>AES Symmetric Encryption + RSA Asymmetric Encryption</p>
+            </div>
+
+            <div class="badge">
+                Hybrid Encryption
+            </div>
+        </div>
+    </header>
+
+
+    <main class="container">
+
+        <!-- Introduction -->
+        <section class="intro-card">
+            <h2>Secure Messaging Demonstration</h2>
+
+            <p>
+                This application demonstrates hybrid encryption.
+                The message is encrypted using AES, while the AES key
+                is secured using RSA.
+            </p>
+
+            <div class="flow">
+
+                <div class="flow-item">
+                    <span>1</span>
+                    <strong>Message</strong>
+                    <small>Plain text</small>
+                </div>
+
+                <div class="arrow">→</div>
+
+                <div class="flow-item">
+                    <span>2</span>
+                    <strong>AES</strong>
+                    <small>Encrypt message</small>
+                </div>
+
+                <div class="arrow">→</div>
+
+                <div class="flow-item">
+                    <span>3</span>
+                    <strong>RSA</strong>
+                    <small>Secure AES key</small>
+                </div>
+
+                <div class="arrow">→</div>
+
+                <div class="flow-item">
+                    <span>4</span>
+                    <strong>Decrypt</strong>
+                    <small>Recover message</small>
+                </div>
+
+            </div>
+        </section>
+
+
+        <!-- Message Section -->
+        <section class="card">
+
+            <div class="card-header">
+                <div>
+                    <h2>✉️ Sender</h2>
+                    <p>Enter the message you want to send securely.</p>
+                </div>
+
+                <span class="status ready" id="statusBadge">
+                    Ready
+                </span>
+            </div>
+
+
+            <label for="message">
+                Message
+            </label>
+
+            <textarea
+                id="message"
+                rows="5"
+                placeholder="Enter your secret message here..."
+            ></textarea>
+
+
+            <div class="button-group">
+
+                <button
+                    id="encryptBtn"
+                    class="btn primary"
+                >
+                    🔒 Encrypt Message
+                </button>
+
+                <button
+                    id="resetBtn"
+                    class="btn secondary"
+                >
+                    ↻ Reset
+                </button>
+
+            </div>
+
+        </section>
+
+
+        <!-- Encryption Result -->
+        <section class="card">
+
+            <div class="card-header">
+                <div>
+                    <h2>🔐 Encryption Result</h2>
+                    <p>
+                        The message is encrypted using AES and the AES key
+                        is encrypted using RSA.
+                    </p>
+                </div>
+            </div>
+
+
+            <div class="result-grid">
+
+                <!-- AES Key -->
+                <div class="result-box">
+
+                    <div class="result-title">
+                        <span class="icon aes">AES</span>
+
+                        <div>
+                            <h3>AES Key</h3>
+                            <small>Symmetric encryption key</small>
+                        </div>
+                    </div>
+
+                    <textarea
+                        id="aesKey"
+                        readonly
+                        placeholder="AES key will appear here..."
+                    ></textarea>
+
+                </div>
+
+
+                <!-- RSA Encrypted Key -->
+                <div class="result-box">
+
+                    <div class="result-title">
+                        <span class="icon rsa">RSA</span>
+
+                        <div>
+                            <h3>RSA Encrypted AES Key</h3>
+                            <small>Securely transmitted key</small>
+                        </div>
+                    </div>
+
+                    <textarea
+                        id="encryptedKey"
+                        readonly
+                        placeholder="RSA encrypted AES key will appear here..."
+                    ></textarea>
+
+                </div>
+
+
+                <!-- Encrypted Message -->
+                <div class="result-box full">
+
+                    <div class="result-title">
+                        <span class="icon msg">✉</span>
+
+                        <div>
+                            <h3>AES Encrypted Message</h3>
+                            <small>Encrypted message / ciphertext</small>
+                        </div>
+                    </div>
+
+                    <textarea
+                        id="encryptedMessage"
+                        readonly
+                        placeholder="Encrypted message will appear here..."
+                    ></textarea>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- Transmission -->
+        <section class="transmission">
+
+            <div class="transmission-icon">
+                📡
+            </div>
+
+            <div>
+                <h3>Secure Transmission</h3>
+
+                <p>
+                    Only the encrypted message and RSA-encrypted AES key
+                    are transmitted to the recipient.
+                </p>
+            </div>
+
+            <div class="transmission-arrow">
+                ↓
+            </div>
+
+        </section>
+
+
+        <!-- Recipient -->
+        <section class="card recipient-card">
+
+            <div class="card-header">
+
+                <div>
+                    <h2>📥 Recipient</h2>
+
+                    <p>
+                        The recipient uses the RSA private key to recover
+                        the AES key and then decrypts the message.
+                    </p>
+                </div>
+
+            </div>
+
+
+            <button
+                id="decryptBtn"
+                class="btn success"
+                disabled
+            >
+                🔓 Decrypt Message
+            </button>
+
+
+            <div class="decryption-process">
+
+                <div class="process-step">
+
+                    <div class="step-number">
+                        1
+                    </div>
+
+                    <div>
+                        <strong>RSA Decryption</strong>
+
+                        <p>
+                            RSA private key decrypts the encrypted AES key.
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <div class="process-step">
+
+                    <div class="step-number">
+                        2
+                    </div>
+
+                    <div>
+                        <strong>AES Decryption</strong>
+
+                        <p>
+                            Recovered AES key decrypts the encrypted message.
+                        </p>
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- Decrypted Message -->
+
+            <div class="decrypted-box">
+
+                <div class="decrypted-title">
+                    <span>✓</span>
+
+                    <div>
+                        <h3>Decrypted Message</h3>
+                        <small>Original message recovered</small>
+                    </div>
+                </div>
+
+
+                <div
+                    id="decryptedMessage"
+                    class="decrypted-content"
+                >
+                    Decrypted message will appear here...
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- Technical Information -->
+        <section class="card technical-card">
+
+            <h2>📚 Encryption Details</h2>
+
+            <div class="technical-grid">
+
+                <div class="technical-item">
+                    <strong>AES</strong>
+
+                    <span>
+                        AES-GCM
+                    </span>
+
+                    <p>
+                        Symmetric encryption used to protect the actual
+                        message.
+                    </p>
+                </div>
+
+
+                <div class="technical-item">
+                    <strong>RSA</strong>
+
+                    <span>
+                        RSA-OAEP
+                    </span>
+
+                    <p>
+                        Asymmetric encryption used to securely protect
+                        the AES key.
+                    </p>
+                </div>
+
+
+                <div class="technical-item">
+                    <strong>Key Size</strong>
+
+                    <span>
+                        RSA 2048-bit
+                    </span>
+
+                    <p>
+                        RSA public/private key pair is generated by the browser.
+                    </p>
+                </div>
+
+
+                <div class="technical-item">
+                    <strong>Security</strong>
+
+                    <span>
+                        Web Crypto API
+                    </span>
+
+                    <p>
+                        Cryptographic operations are performed by the browser.
+                    </p>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <footer class="footer">
+
+        <p>
+            Secure Messaging Web Application
+        </p>
+
+        <p>
+            AES + RSA Hybrid Encryption Demonstration
+        </p>
+
+    </footer>
+
+
+    <script src="script.js"></script>
+
+</body>
+</html>
