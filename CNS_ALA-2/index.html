@@ -1,445 +1,145 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>Malware Behavior Simulator</title>
-
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#070c16">
+  <title>Cyber Threat Lab | Dhruvit Jadav</title>
+  <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
-
-    <!-- =========================================================
-         PAGE 1 : THREAT SELECTION
-    ========================================================== -->
-
-    <section id="homePage" class="page active">
-
-        <div class="rgb-line"></div>
-
-        <header class="topbar">
-
-            <div class="brand">
-                <div class="brand-icon">⚡</div>
-
-                <div>
-                    <h1>CYBER<span>LAB</span></h1>
-                    <p>Malware Behavior Simulator</p>
-                </div>
-            </div>
-
-            <div class="safe-badge">
-                <span class="pulse-dot"></span>
-                SAFE SIMULATION
-            </div>
-
-        </header>
-
-
-        <main class="home-content">
-
-            <div class="hero">
-
-                <div class="terminal-tag">
-                    <span>●</span> CONTROLLED ENVIRONMENT
-                </div>
-
-                <h2>
-                    MALWARE
-                    <span>BEHAVIOR</span>
-                    SIMULATOR
-                </h2>
-
-                <p>
-                    Explore how common malware categories behave inside
-                    a completely isolated and harmless virtual network.
-                </p>
-
-            </div>
-
-
-            <div class="threat-grid">
-
-                <!-- VIRUS -->
-
-                <article
-                    class="threat-card virus-card"
-                    onclick="selectThreat('virus')"
-                >
-
-                    <div class="card-glow"></div>
-
-                    <div class="threat-icon">
-                        🦠
-                    </div>
-
-                    <div class="threat-number">
-                        01
-                    </div>
-
-                    <h3>VIRUS</h3>
-
-                    <p>
-                        Simulates malware that attaches itself to
-                        simulated files or hosts and gradually spreads
-                        between connected computers.
-                    </p>
-
-                    <div class="behavior">
-                        <span>●</span> HOST DEPENDENT
-                    </div>
-
-                    <div class="explore">
-                        EXPLORE
-                        <span>→</span>
-                    </div>
-
-                </article>
-
-
-                <!-- WORM -->
-
-                <article
-                    class="threat-card worm-card"
-                    onclick="selectThreat('worm')"
-                >
-
-                    <div class="card-glow"></div>
-
-                    <div class="threat-icon">
-                        🪱
-                    </div>
-
-                    <div class="threat-number">
-                        02
-                    </div>
-
-                    <h3>WORM</h3>
-
-                    <p>
-                        Simulates self-replicating malware that can
-                        automatically move through every connected
-                        computer in the simulated network.
-                    </p>
-
-                    <div class="behavior">
-                        <span>●</span> SELF REPLICATING
-                    </div>
-
-                    <div class="explore">
-                        EXPLORE
-                        <span>→</span>
-                    </div>
-
-                </article>
-
-
-                <!-- TROJAN -->
-
-                <article
-                    class="threat-card trojan-card"
-                    onclick="selectThreat('trojan')"
-                >
-
-                    <div class="card-glow"></div>
-
-                    <div class="threat-icon">
-                        🐴
-                    </div>
-
-                    <div class="threat-number">
-                        03
-                    </div>
-
-                    <h3>TROJAN</h3>
-
-                    <p>
-                        Simulates malicious software disguised as
-                        legitimate software and targeting selected
-                        computers in the environment.
-                    </p>
-
-                    <div class="behavior">
-                        <span>●</span> DISGUISED THREAT
-                    </div>
-
-                    <div class="explore">
-                        EXPLORE
-                        <span>→</span>
-                    </div>
-
-                </article>
-
-            </div>
-
-
-            <div class="home-footer">
-
-                <div>
-                    <span class="status-dot"></span>
-                    NETWORK ISOLATED
-                </div>
-
-                <div>
-                    14 VIRTUAL NODES
-                </div>
-
-                <div>
-                    NO REAL SYSTEM ACCESS
-                </div>
-
-            </div>
-
-        </main>
-
-    </section>
-
-
-
-    <!-- =========================================================
-         PAGE 2 : SIMULATION
-    ========================================================== -->
-
-    <section id="simulationPage" class="page simulation-page">
-
-        <header class="simulation-header">
-
-            <div class="simulation-brand">
-
-                <button class="back-btn" onclick="goHome()">
-                    ←
-                </button>
-
-                <div>
-                    <h1>CYBER<span>LAB</span></h1>
-                    <p id="simulationSubtitle">
-                        MALWARE SIMULATION
-                    </p>
-                </div>
-
-            </div>
-
-
-            <div class="live-status">
-
-                <span class="live-dot"></span>
-
-                <span id="simulationStatus">
-                    INITIALIZING
-                </span>
-
-            </div>
-
-        </header>
-
-
-
-        <main class="simulation-layout">
-
-            <!-- LEFT PANEL -->
-
-            <aside class="side-panel">
-
-                <div class="threat-profile">
-
-                    <div
-                        id="profileIcon"
-                        class="profile-icon"
-                    >
-                        🦠
-                    </div>
-
-                    <div>
-
-                        <div class="small-label">
-                            ACTIVE THREAT
-                        </div>
-
-                        <h2 id="profileName">
-                            VIRUS
-                        </h2>
-
-                    </div>
-
-                </div>
-
-
-                <div class="description-box">
-
-                    <div class="section-label">
-                        THREAT DESCRIPTION
-                    </div>
-
-                    <p id="threatDescription">
-                        Loading...
-                    </p>
-
-                </div>
-
-
-                <div class="stats">
-
-                    <div class="stat-box">
-                        <span>INFECTED</span>
-                        <strong id="infectedCount">
-                            0
-                        </strong>
-                    </div>
-
-                    <div class="stat-box">
-                        <span>HEALTHY</span>
-                        <strong id="healthyCount">
-                            14
-                        </strong>
-                    </div>
-
-                    <div class="stat-box">
-                        <span>PROGRESS</span>
-                        <strong id="progressValue">
-                            0%
-                        </strong>
-                    </div>
-
-                </div>
-
-
-                <div class="progress-container">
-
-                    <div class="progress-top">
-                        <span>SPREAD PROGRESS</span>
-                        <span id="progressText">0 / 14</span>
-                    </div>
-
-                    <div class="progress-bar">
-
-                        <div
-                            id="progressBar"
-                            class="progress-fill"
-                        ></div>
-
-                    </div>
-
-                </div>
-
-
-                <div class="legend">
-
-                    <div>
-                        <span class="legend-dot healthy"></span>
-                        Healthy
-                    </div>
-
-                    <div>
-                        <span class="legend-dot infected"></span>
-                        Infected
-                    </div>
-
-                    <div>
-                        <span class="legend-dot spreading"></span>
-                        Spreading
-                    </div>
-
-                </div>
-
-            </aside>
-
-
-
-            <!-- NETWORK -->
-
-            <section class="network-panel">
-
-                <div class="network-header">
-
-                    <div>
-
-                        <div class="section-label">
-                            VIRTUAL NETWORK
-                        </div>
-
-                        <h2>
-                            14 COMPUTING NODES
-                        </h2>
-
-                    </div>
-
-                    <div class="network-live">
-                        <span></span>
-                        LIVE
-                    </div>
-
-                </div>
-
-
-                <div id="network" class="network">
-
-                    <!-- PC NODES GENERATED BY JS -->
-
-                </div>
-
-
-                <div class="activity-panel">
-
-                    <div class="activity-header">
-
-                        <span>
-                            ACTIVITY MONITOR
-                        </span>
-
-                        <span id="activityStatus">
-                            MONITORING
-                        </span>
-
-                    </div>
-
-
-                    <div
-                        id="activityLog"
-                        class="activity-log"
-                    >
-
-                        <div class="log-item">
-                            <span class="log-time">
-                                SYSTEM
-                            </span>
-
-                            <span>
-                                Waiting for simulation...
-                            </span>
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </section>
-
-        </main>
-
-
-        <footer class="simulation-footer">
-
-            <div>
-                <span class="footer-dot"></span>
-                SIMULATION MODE
-            </div>
-
-            <div>
-                SAFE • ISOLATED • EDUCATIONAL
-            </div>
-
-            <div>
-                14 NODES
-            </div>
-
-        </footer>
-
-    </section>
-
-
-    <script src="script.js"></script>
-
+  <div class="app">
+    <header class="topbar">
+      <a class="brand" href="#">
+        <div class="brand-icon">⌘</div>
+        <div>
+          <h1>CYBER<span>LAB</span></h1>
+          <p>NETWORK THREAT SIMULATOR</p>
+        </div>
+      </a>
+      <div class="header-status"><span></span> LOCAL SIMULATION</div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div>
+          <div class="eyebrow">CYBERSECURITY LEARNING MODULE</div>
+          <h2>Cyber Threat <span>Laboratory</span></h2>
+          <p>Explore how malware can affect connected computer systems through a safe visual simulation.</p>
+        </div>
+        <div class="author-card">
+          <div class="author-avatar">DJ</div>
+          <div><small>PROJECT DEVELOPED BY</small><strong>Dhruvit Jadav</strong><small>COLLEGE PROJECT</small></div>
+        </div>
+      </section>
+
+      <section class="stats">
+        <article class="stat">
+          <span>Total PCs</span><strong id="totalCount">12</strong><small>Virtual workstations</small>
+        </article>
+        <article class="stat">
+          <span>Infected PCs</span><strong id="infectedCount">0 / 12</strong><div class="progress"><i id="progress"></i></div><small id="infectedPercent">0% affected</small>
+        </article>
+        <article class="stat">
+          <span>Online / Secure</span><strong id="secureCount">12</strong><small>Not marked infected</small>
+        </article>
+        <article class="stat">
+          <span>Security Events</span><strong id="eventCount">0</strong><small>Current session</small>
+        </article>
+      </section>
+
+      <section class="section">
+        <div class="section-title">
+          <div><div class="eyebrow">01 / THREAT SELECTION</div><h3>Choose a Simulation</h3></div>
+          <span class="subtle">Select a threat to configure the network</span>
+        </div>
+
+        <div class="threats">
+          <button class="threat selected" data-threat="virus" aria-pressed="true">
+            <span class="threat-icon virus-icon">✳</span><span class="tag">FILE-BASED</span>
+            <h4>Computer Virus</h4>
+            <p>One randomly chosen host stays yellow. All other 11 PCs become infected.</p>
+            <span class="select-label">Select scenario →</span>
+          </button>
+          <button class="threat" data-threat="worm" aria-pressed="false">
+            <span class="threat-icon worm-icon">⤳</span><span class="tag">NETWORK</span>
+            <h4>Computer Worm</h4>
+            <p>Visualizes infection spreading progressively across all 12 connected PCs.</p>
+            <span class="select-label">Select scenario →</span>
+          </button>
+          <button class="threat" data-threat="trojan" aria-pressed="false">
+            <span class="threat-icon trojan-icon">♜</span><span class="tag">DECEPTIVE</span>
+            <h4>Trojan Horse</h4>
+            <p>One randomly selected PC becomes infected. Other devices stay online.</p>
+            <span class="select-label">Select scenario →</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="network-panel panel">
+        <div class="network-header">
+          <div class="network-heading"><span class="monitor-emoji">🖥️</span><div><h3>12 PC NETWORK</h3><small id="networkSubtitle">LAN TOPOLOGY · 12 WORKSTATIONS</small></div></div>
+          <div class="network-status" id="networkStatus">● READY TO SIMULATE</div>
+        </div>
+
+        <div class="network-map" id="networkMap">
+          <svg id="lanSvg" class="lan-svg" aria-hidden="true"></svg>
+          <div id="pcGrid" class="pc-grid" aria-label="12 connected virtual PCs"></div>
+        </div>
+
+        <div class="network-legend">
+          <span><i class="legend online-legend"></i> Online / Secure</span>
+          <span><i class="legend infected-legend"></i> Infected</span>
+          <span><i class="legend host-legend"></i> Virus Host</span>
+          <span class="cable-legend"><i></i> LAN Connection</span>
+        </div>
+      </section>
+
+      <section class="lower-grid">
+        <div class="panel info-panel">
+          <div class="eyebrow">02 / THREAT INFORMATION</div>
+          <h3 id="infoTitle">Computer Virus</h3>
+          <p id="infoDescription">A virus attaches to a host file or program. This educational model uses one safe virtual host and marks the other devices as infected.</p>
+          <div class="detail-row"><span>Threat category</span><strong id="infoCategory">File-based malware</strong></div>
+          <div class="detail-row"><span>Spread model</span><strong id="infoSpread">11 PCs + host</strong></div>
+          <div class="detail-row"><span>Real network access</span><strong class="safe">Disabled</strong></div>
+          <div class="detail-row"><span>Prevention</span><strong id="infoPrevention">Scan files</strong></div>
+        </div>
+
+        <div class="panel control-panel">
+          <div class="eyebrow">03 / SIMULATION CONTROLS</div>
+          <h3>Control Center</h3>
+          <p>Start a scenario or reset the virtual network.</p>
+          <button class="primary-button" id="startBtn">▶ &nbsp; Start Simulation</button>
+          <div class="control-row">
+            <button class="secondary-button" id="restartBtn">↻ Restart</button>
+            <button class="secondary-button" id="changeBtn">⇄ Change Threat</button>
+          </div>
+          <p class="control-hint" id="controlHint">Choose a threat, then start the simulation.</p>
+        </div>
+
+        <div class="panel log-panel">
+          <div class="log-heading"><div><div class="eyebrow">04 / ACTIVITY</div><h3>Security Event Log</h3></div><button id="clearLogBtn" class="clear-button">Clear</button></div>
+          <div id="eventLog" class="event-log" aria-live="polite"><div class="empty">No events yet. Start a simulation.</div></div>
+        </div>
+
+        <div class="panel guide-panel">
+          <div class="eyebrow">05 / STAY PROTECTED</div>
+          <h3>Security Recommendations</h3>
+          <div class="guide-item"><span>01</span><div><strong>Update your software</strong><p>Install operating system and application security updates.</p></div></div>
+          <div class="guide-item"><span>02</span><div><strong>Use trusted protection</strong><p>Enable reputable antivirus and firewall protection.</p></div></div>
+          <div class="guide-item"><span>03</span><div><strong>Verify downloads</strong><p>Avoid suspicious attachments and untrusted software.</p></div></div>
+          <div class="guide-item"><span>04</span><div><strong>Back up important data</strong><p>Keep backups and test recovery regularly.</p></div></div>
+        </div>
+      </section>
+
+      <div class="disclaimer"><strong>ⓘ Educational simulation only:</strong> All PC states, infections, and LAN animations are visual effects running in your browser. No malware is executed and no real devices or network connections are affected.</div>
+    </main>
+
+    <footer><strong>CYBER<span>LAB</span></strong><span>Designed &amp; developed by Dhruvit Jadav</span><span>© <span id="year"></span></span></footer>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+  <script src="script.js"></script>
 </body>
 </html>

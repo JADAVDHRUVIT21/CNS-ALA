@@ -1,1127 +1,603 @@
-/* =========================================================
-   MALWARE BEHAVIOR SIMULATOR
-   SAFE / EDUCATIONAL SIMULATION
-========================================================= */
 
+"use strict";
 
-/* =========================================================
-   GLOBAL VARIABLES
-========================================================= */
-
-let currentThreat = null;
-
-let infectedPCs = new Set();
-
-let simulationTimers = [];
-
-const totalPCs = 14;
-
-
-/* =========================================================
-   THREAT DATA
-========================================================= */
+const TOTAL_PCS = 12;
+const $ = id => document.getElementById(id);
 
 const threats = {
-
-    virus: {
-
-        name: "VIRUS",
-
-        icon: "🦠",
-
-        color: "#ff315a",
-
-        description:
-            "A computer virus is simulated as malware that depends on a host. In this safe environment, selected virtual PCs become infected and the simulated infection gradually moves to other connected nodes.",
-
-        type:
-            "HOST DEPENDENT",
-
-        mode:
-            "Selective propagation"
-
-    },
-
-
-    worm: {
-
-        name: "WORM",
-
-        icon: "🪱",
-
-        color: "#00eaff",
-
-        description:
-            "A computer worm is simulated as self-replicating malware. Once the simulation starts, the worm automatically propagates through the virtual network and attempts to reach every available PC node.",
-
-        type:
-            "SELF REPLICATING",
-
-        mode:
-            "Automatic network propagation"
-
-    },
-
-
-    trojan: {
-
-        name: "TROJAN",
-
-        icon: "🐴",
-
-        color: "#a855f7",
-
-        description:
-            "A Trojan is simulated as malicious software disguised as legitimate software. In this controlled environment, only selected virtual PCs become affected to demonstrate targeted behavior.",
-
-        type:
-            "DISGUISED THREAT",
-
-        mode:
-            "Selective targeting"
-
-    }
-
+  virus: {
+    name: "Computer Virus",
+    symbol: "✳",
+    category: "File-based malware",
+    spread: "11 PCs + 1 host",
+    prevention: "Scan files",
+    description:
+      "A computer virus attaches to a host file or program. The selected host stays yellow and secure in this visual model, while all other 11 PCs become infected."
+  },
+  worm: {
+    name: "Computer Worm",
+    symbol: "⤳",
+    category: "Network malware",
+    spread: "All 12 PCs",
+    prevention: "Patch systems",
+    description:
+      "A worm can spread between vulnerable systems. This demonstration animates simulated infections across all 12 PCs and highlights their LAN connections."
+  },
+  trojan: {
+    name: "Trojan Horse",
+    symbol: "♜",
+    category: "Deceptive software",
+    spread: "One random PC",
+    prevention: "Verify software",
+    description:
+      "A Trojan disguises itself as legitimate software. This demonstration marks one randomly selected PC as infected while the other 11 remain online."
+  }
 };
 
+const ui = {
+  grid: $("pcGrid"),
+  map: $("networkMap"),
+  svg: $("lanSvg"),
+  total: $("totalCount"),
+  infected: $("infectedCount"),
+  secure: $("secureCount"),
+  events: $("eventCount"),
+  progress: $("progress"),
+  percent: $("infectedPercent"),
+  networkStatus: $("networkStatus"),
+  subtitle: $("networkSubtitle"),
+  infoTitle: $("infoTitle"),
+  infoDescription: $("infoDescription"),
+  infoCategory: $("infoCategory"),
+  infoSpread: $("infoSpread"),
+  infoPrevention: $("infoPrevention"),
+  start: $("startBtn"),
+  restart: $("restartBtn"),
+  change: $("changeBtn"),
+  hint: $("controlHint"),
+  log: $("eventLog"),
+  clearLog: $("clearLogBtn"),
+  toast: $("toast")
+};
 
-/* =========================================================
-   SELECT THREAT
-========================================================= */
+let currentThreat = "virus";
+let infected = new Set();
+let hostPC = null;
+let running = false;
+let completed = false;
+let token = 0;
+let eventCount = 0;
+let eventHistory = [];
+let activeTimers = new Set();
+let toastTimer;
 
-function selectThreat(type) {
-
-    currentThreat = type;
-
-    infectedPCs.clear();
-
-    clearTimers();
-
-    showSimulationPage();
-
-}
-
-
-/* =========================================================
-   SHOW SIMULATION PAGE
-========================================================= */
-
-function showSimulationPage() {
-
-    document
-        .getElementById("homePage")
-        .classList.remove("active");
-
-    document
-        .getElementById("simulationPage")
-        .classList.add("active");
-
-    updateThreatUI();
-
-    createNetwork();
-
-    resetStats();
-
-
-    /*
-        Automatically start after 2 seconds.
-        No start button required.
-    */
-
+function wait(ms, runToken) {
+  return new Promise(resolve => {
     const timer = setTimeout(() => {
-
-        startSimulation();
-
-    }, 2000);
-
-    simulationTimers.push(timer);
+      activeTimers.delete(timer);
+      resolve(runToken === token);
+    }, ms);
+    activeTimers.add(timer);
+  });
 }
 
-
-/* =========================================================
-   GO HOME
-========================================================= */
-
-function goHome() {
-
-    clearTimers();
-
-    infectedPCs.clear();
-
-    document
-        .getElementById("simulationPage")
-        .classList.remove("active");
-
-    document
-        .getElementById("homePage")
-        .classList.add("active");
+function cancelTimers() {
+  activeTimers.forEach(clearTimeout);
+  activeTimers.clear();
 }
 
-
-/* =========================================================
-   UPDATE THREAT UI
-========================================================= */
-
-function updateThreatUI() {
-
-    const data = threats[currentThreat];
-
-    document
-        .getElementById("profileIcon")
-        .textContent = data.icon;
-
-    document
-        .getElementById("profileName")
-        .textContent = data.name;
-
-    document
-        .getElementById("threatDescription")
-        .textContent = data.description;
-
-    document
-        .getElementById("simulationSubtitle")
-        .textContent =
-            data.name + " • " + data.type;
-
-    document
-        .getElementById("simulationStatus")
-        .textContent =
-            "READY";
-
-    document
-        .getElementById("activityStatus")
-        .textContent =
-            "READY";
+function pcName(n) {
+  return `PC-${String(n).padStart(2, "0")}`;
 }
 
-
-/* =========================================================
-   CREATE 14 PC NETWORK
-========================================================= */
-
-function createNetwork() {
-
-    const network =
-        document.getElementById("network");
-
-    network.innerHTML = "";
-
-    createConnections();
-
-
-    for (
-        let i = 1;
-        i <= totalPCs;
-        i++
-    ) {
-
-        const pc =
-            document.createElement("div");
-
-        pc.className =
-            "pc healthy";
-
-        pc.id =
-            `pc-${i}`;
-
-        pc.innerHTML = `
-
-            <div class="pc-screen"></div>
-
-            <div class="pc-name">
-                PC-${String(i).padStart(2, "0")}
-            </div>
-
-            <div class="pc-status">
-                HEALTHY
-            </div>
-
-        `;
-
-        network.appendChild(pc);
-    }
+// Distinct monitor icon for every virtual workstation.
+function monitorIcon() {
+  return `
+    <svg viewBox="0 0 40 40" fill="none" aria-hidden="true">
+      <rect x="5" y="4" width="30" height="22" rx="2"
+        fill="currentColor" opacity=".95"/>
+      <path d="M8 7H32V23H8Z" fill="#9feaff" opacity=".25"/>
+      <path d="M20 26V31M13 32H27"
+        stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+      <rect x="11" y="34" width="18" height="2.5" rx="1.2"
+        fill="currentColor" opacity=".8"/>
+    </svg>`;
 }
 
+function createPCs() {
+  ui.grid.innerHTML = "";
 
-/* =========================================================
-   NETWORK CONNECTIONS
-========================================================= */
+  for (let pc = 1; pc <= TOTAL_PCS; pc++) {
+    const card = document.createElement("div");
+    card.className = "pc-card online";
+    card.dataset.pc = pc;
 
-function createConnections() {
+    const screen = document.createElement("div");
+    screen.className = "pc-screen";
+    screen.innerHTML = monitorIcon();
 
-    const network =
-        document.getElementById("network");
+    const name = document.createElement("div");
+    name.className = "pc-name";
+    name.textContent = pcName(pc);
 
-    setTimeout(() => {
+    const state = document.createElement("div");
+    state.className = "pc-state";
+    state.textContent = "ONLINE";
 
-        const pcs =
-            document.querySelectorAll(".pc");
+    card.append(screen, name, state);
+    card.setAttribute("role", "img");
+    card.setAttribute("aria-label", `${pcName(pc)}, online`);
 
-        if (!pcs.length)
-            return;
+    ui.grid.appendChild(card);
+  }
 
-
-        for (
-            let i = 0;
-            i < pcs.length - 1;
-            i++
-        ) {
-
-            if (
-                Math.floor(i / 7) ===
-                Math.floor((i + 1) / 7)
-            ) {
-
-                drawLine(
-                    network,
-                    pcs[i],
-                    pcs[i + 1]
-                );
-            }
-        }
-
-
-        for (
-            let i = 0;
-            i < 7;
-            i++
-        ) {
-
-            drawLine(
-                network,
-                pcs[i],
-                pcs[i + 7]
-            );
-        }
-
-    }, 50);
+  requestAnimationFrame(drawLAN);
 }
 
-
-/* =========================================================
-   DRAW NETWORK LINE
-========================================================= */
-
-function drawLine(
-    container,
-    element1,
-    element2
-) {
-
-    const line =
-        document.createElement("div");
-
-    line.className =
-        "connection";
-
-    const containerRect =
-        container.getBoundingClientRect();
-
-    const rect1 =
-        element1.getBoundingClientRect();
-
-    const rect2 =
-        element2.getBoundingClientRect();
-
-
-    const x1 =
-        rect1.left +
-        rect1.width / 2 -
-        containerRect.left;
-
-    const y1 =
-        rect1.top +
-        rect1.height / 2 -
-        containerRect.top;
-
-    const x2 =
-        rect2.left +
-        rect2.width / 2 -
-        containerRect.left;
-
-    const y2 =
-        rect2.top +
-        rect2.height / 2 -
-        containerRect.top;
-
-
-    const dx = x2 - x1;
-
-    const dy = y2 - y1;
-
-    const distance =
-        Math.sqrt(
-            dx * dx +
-            dy * dy
-        );
-
-    const angle =
-        Math.atan2(dy, dx) *
-        180 /
-        Math.PI;
-
-
-    line.style.width =
-        `${distance}px`;
-
-    line.style.left =
-        `${x1}px`;
-
-    line.style.top =
-        `${y1}px`;
-
-    line.style.transform =
-        `rotate(${angle}deg)`;
-
-
-    container.appendChild(line);
+function getPC(pc) {
+  return ui.grid.querySelector(`[data-pc="${pc}"]`);
 }
 
+// Connect each PC to its right-hand and lower neighbor.
+// This produces a connected 4-column by 3-row LAN layout.
+function drawLAN() {
+  const mapRect = ui.map.getBoundingClientRect();
+  if (!mapRect.width || !mapRect.height) return;
 
-/* =========================================================
-   RESET STATS
-========================================================= */
+  ui.svg.setAttribute(
+    "viewBox", `0 0 ${mapRect.width} ${mapRect.height}`
+  );
+  ui.svg.innerHTML = "";
 
-function resetStats() {
+  const connections = [];
 
-    document
-        .getElementById("infectedCount")
-        .textContent = "0";
+  for (let pc = 1; pc <= TOTAL_PCS; pc++) {
+    const col = (pc - 1) % 4;
+    const row = Math.floor((pc - 1) / 4);
 
-    document
-        .getElementById("healthyCount")
-        .textContent =
-            totalPCs;
+    if (col < 3) connections.push([pc, pc + 1]);
+    if (row < 2) connections.push([pc, pc + 4]);
+  }
 
-    document
-        .getElementById("progressValue")
-        .textContent = "0%";
+  connections.forEach(([from, to]) => {
+    const a = getPC(from);
+    const b = getPC(to);
+    if (!a || !b) return;
 
-    document
-        .getElementById("progressText")
-        .textContent =
-            `0 / ${totalPCs}`;
+    const ar = a.getBoundingClientRect();
+    const br = b.getBoundingClientRect();
 
-    document
-        .getElementById("progressBar")
-        .style.width = "0%";
+    const x1 = ar.left + ar.width / 2 - mapRect.left;
+    const y1 = ar.top + ar.height / 2 - mapRect.top;
+    const x2 = br.left + br.width / 2 - mapRect.left;
+    const y2 = br.top + br.height / 2 - mapRect.top;
 
-
-    document
-        .getElementById("activityLog")
-        .innerHTML = `
-
-            <div class="log-item system-log">
-
-                <span class="log-time">
-                    SYSTEM
-                </span>
-
-                <span>
-                    Simulation environment initialized.
-                </span>
-
-            </div>
-
-            <div class="log-item">
-
-                <span class="log-time">
-                    NETWORK
-                </span>
-
-                <span>
-                    14 virtual nodes detected.
-                </span>
-
-            </div>
-
-        `;
-}
-
-
-/* =========================================================
-   START SIMULATION
-========================================================= */
-
-function startSimulation() {
-
-    const data =
-        threats[currentThreat];
-
-
-    document
-        .getElementById("simulationStatus")
-        .textContent =
-            "SIMULATION ACTIVE";
-
-
-    document
-        .getElementById("activityStatus")
-        .textContent =
-            "LIVE";
-
-
-    addLog(
-        "THREAT",
-        `${data.name} simulation started.`,
-        "system-log"
+    const line = document.createElementNS(
+      "http://www.w3.org/2000/svg", "line"
     );
 
+    line.setAttribute("x1", x1);
+    line.setAttribute("y1", y1);
+    line.setAttribute("x2", x2);
+    line.setAttribute("y2", y2);
+    line.dataset.from = from;
+    line.dataset.to = to;
+    line.classList.add("lan-line");
 
-    if (currentThreat === "virus") {
+    ui.svg.appendChild(line);
+  });
 
-        runVirusSimulation();
-
-    }
-
-    else if (currentThreat === "worm") {
-
-        runWormSimulation();
-
-    }
-
-    else if (currentThreat === "trojan") {
-
-        runTrojanSimulation();
-
-    }
+  updateLAN();
 }
 
+function updateLAN(spreadingPC = null) {
+  ui.svg.querySelectorAll(".lan-line").forEach(line => {
+    const a = Number(line.dataset.from);
+    const b = Number(line.dataset.to);
 
-/* =========================================================
-   VIRUS SIMULATION
-========================================================= */
+    line.classList.remove("spreading", "infected-link");
 
-function runVirusSimulation() {
-
-    const first =
-        randomPC();
-
-
-    processPC(first, () => {
-
-        const spreadSequence =
-            shuffle(
-                Array.from(
-                    { length: totalPCs },
-                    (_, i) => i + 1
-                )
-            );
-
-
-        let index = 0;
-
-
-        /*
-            Virus affects selected PCs only.
-            Every PC finishes its process before
-            the next PC starts.
-        */
-
-        function nextVirusPC() {
-
-            if (
-                infectedPCs.size >= 6 ||
-                index >= spreadSequence.length
-            ) {
-
-                finishSimulation();
-
-                return;
-            }
-
-
-            const pc =
-                spreadSequence[index++];
-
-
-            if (
-                infectedPCs.has(pc)
-            ) {
-
-                nextVirusPC();
-
-                return;
-            }
-
-
-            processPC(
-                pc,
-                nextVirusPC
-            );
-        }
-
-
-        nextVirusPC();
-
-    });
-}
-
-
-/* =========================================================
-   WORM SIMULATION
-========================================================= */
-
-function runWormSimulation() {
-
-    const sequence =
-        shuffle(
-            Array.from(
-                { length: totalPCs },
-                (_, i) => i + 1
-            )
-        );
-
-
-    let index = 0;
-
-
-    /*
-        Worm processes ALL 14 PCs.
-        One PC completes before next starts.
-    */
-
-    function nextWormPC() {
-
-        if (
-            index >= sequence.length
-        ) {
-
-            finishSimulation();
-
-            return;
-        }
-
-
-        const pc =
-            sequence[index++];
-
-
-        processPC(
-            pc,
-            nextWormPC
-        );
+    if (infected.has(a) && infected.has(b)) {
+      line.classList.add("infected-link");
     }
 
-
-    nextWormPC();
-}
-
-
-/* =========================================================
-   TROJAN SIMULATION
-========================================================= */
-
-function runTrojanSimulation() {
-
-    const targetCount =
-        randomNumber(3, 5);
-
-
-    const targets =
-        shuffle(
-            Array.from(
-                { length: totalPCs },
-                (_, i) => i + 1
-            )
-        ).slice(
-            0,
-            targetCount
-        );
-
-
-    let index = 0;
-
-
-    /*
-        Trojan processes only selected PCs.
-    */
-
-    function nextTrojanPC() {
-
-        if (
-            index >= targets.length
-        ) {
-
-            finishSimulation();
-
-            return;
-        }
-
-
-        const pc =
-            targets[index++];
-
-
-        processPC(
-            pc,
-            nextTrojanPC
-        );
-    }
-
-
-    nextTrojanPC();
-}
-
-
-/* =========================================================
-   PROCESS PC
-========================================================= */
-
-function processPC(
-    number,
-    onComplete
-) {
-
+    // Animate LAN connections attached to the most recently
+    // affected PC during the propagation sequence.
     if (
-        infectedPCs.has(number)
+      spreadingPC !== null &&
+      (a === spreadingPC || b === spreadingPC)
     ) {
-
-        onComplete();
-
-        return;
+      line.classList.add("spreading");
     }
-
-
-    const pc =
-        document.getElementById(
-            `pc-${number}`
-        );
-
-
-    if (!pc) {
-
-        onComplete();
-
-        return;
-    }
-
-
-    /*
-        -----------------------------------------------------
-        STEP 1 : SCANNING
-        -----------------------------------------------------
-    */
-
-    pc.classList.remove(
-        "healthy",
-        "infected"
-    );
-
-    pc.classList.add(
-        "spreading"
-    );
-
-
-    pc.querySelector(
-        ".pc-status"
-    ).textContent =
-        "SCANNING";
-
-
-    addLog(
-        "SCAN",
-        `PC-${String(number).padStart(2, "0")} is being scanned.`,
-        "system-log"
-    );
-
-
-    /*
-        -----------------------------------------------------
-        STEP 2 : PROCESSING
-        -----------------------------------------------------
-    */
-
-    const processingTimer =
-        setTimeout(() => {
-
-            pc.querySelector(
-                ".pc-status"
-            ).textContent =
-                "PROCESSING...";
-
-
-            addLog(
-                "PROCESS",
-                `PC-${String(number).padStart(2, "0")} infection process started.`,
-                "system-log"
-            );
-
-
-            /*
-                Small processing animation.
-            */
-
-            pc.classList.add(
-                "spreading"
-            );
-
-
-        }, 650);
-
-
-    simulationTimers.push(
-        processingTimer
-    );
-
-
-    /*
-        -----------------------------------------------------
-        STEP 3 : INFECTED
-        -----------------------------------------------------
-    */
-
-    const infectedTimer =
-        setTimeout(() => {
-
-            infectedPCs.add(number);
-
-
-            pc.classList.remove(
-                "spreading"
-            );
-
-            pc.classList.add(
-                "infected"
-            );
-
-
-            pc.querySelector(
-                ".pc-status"
-            ).textContent =
-                "INFECTED";
-
-
-            addLog(
-                "ALERT",
-                `PC-${String(number).padStart(2, "0")} is now infected in simulation.`,
-                "infected-log"
-            );
-
-
-            updateStats();
-
-
-        }, 1500);
-
-
-    simulationTimers.push(
-        infectedTimer
-    );
-
-
-    /*
-        -----------------------------------------------------
-        STEP 4 : PROCESS DONE
-        -----------------------------------------------------
-    */
-
-    const doneTimer =
-        setTimeout(() => {
-
-            pc.querySelector(
-                ".pc-status"
-            ).textContent =
-                "PROCESS DONE";
-
-
-            addLog(
-                "DONE",
-                `PC-${String(number).padStart(2, "0")} process completed.`,
-                "system-log"
-            );
-
-
-            updateStats();
-
-
-            /*
-                IMPORTANT:
-                Next PC starts ONLY after
-                current PC says PROCESS DONE.
-            */
-
-            if (
-                typeof onComplete === "function"
-            ) {
-
-                onComplete();
-
-            }
-
-
-        }, 2200);
-
-
-    simulationTimers.push(
-        doneTimer
-    );
+  });
 }
 
+function setPCState(pc, state) {
+  const card = getPC(pc);
+  if (!card) return;
 
-/* =========================================================
-   UPDATE STATS
-========================================================= */
+  card.classList.remove("online", "infected", "host");
+  card.classList.add(state);
+
+  const label = card.querySelector(".pc-state");
+
+  const labels = {
+    online: "ONLINE",
+    infected: "INFECTED",
+    host: "HOST"
+  };
+
+  label.textContent = labels[state];
+  card.setAttribute("aria-label", `${pcName(pc)}, ${labels[state]}`);
+}
 
 function updateStats() {
+  const count = infected.size;
+  const percentage = Math.round(count / TOTAL_PCS * 100);
 
-    const infected =
-        infectedPCs.size;
-
-
-    const healthy =
-        totalPCs - infected;
-
-
-    const percentage =
-        Math.round(
-            infected /
-            totalPCs *
-            100
-        );
-
-
-    document
-        .getElementById("infectedCount")
-        .textContent =
-            infected;
-
-
-    document
-        .getElementById("healthyCount")
-        .textContent =
-            healthy;
-
-
-    document
-        .getElementById("progressValue")
-        .textContent =
-            percentage + "%";
-
-
-    document
-        .getElementById("progressText")
-        .textContent =
-            `${infected} / ${totalPCs}`;
-
-
-    document
-        .getElementById("progressBar")
-        .style.width =
-            percentage + "%";
+  ui.total.textContent = TOTAL_PCS;
+  ui.infected.textContent = `${count} / ${TOTAL_PCS}`;
+  ui.secure.textContent = TOTAL_PCS - count;
+  ui.events.textContent = eventCount;
+  ui.progress.style.width = `${percentage}%`;
+  ui.percent.textContent = `${percentage}% affected`;
 }
 
-
-/* =========================================================
-   FINISH SIMULATION
-========================================================= */
-
-function finishSimulation() {
-
-    const timer =
-        setTimeout(() => {
-
-            updateStats();
-
-
-            document
-                .getElementById("simulationStatus")
-                .textContent =
-                    "SIMULATION COMPLETE";
-
-
-            document
-                .getElementById("activityStatus")
-                .textContent =
-                    "COMPLETE";
-
-
-            addLog(
-                "SYSTEM",
-                `${threats[currentThreat].name} behavior simulation completed.`,
-                "system-log"
-            );
-
-
-            addLog(
-                "SAFE",
-                "No real computers or files were affected.",
-                "system-log"
-            );
-
-
-        }, 500);
-
-
-    simulationTimers.push(timer);
+function setNetworkStatus(message, state = "") {
+  ui.networkStatus.textContent = message;
+  ui.networkStatus.style.color =
+    state === "infected" ? "#ff4d7d" :
+    state === "running" ? "#00e8f5" :
+    state === "host" ? "#ffd000" : "#00e8f5";
 }
 
+function updateThreatInfo(key) {
+  currentThreat = key;
+  const threat = threats[key];
 
-/* =========================================================
-   ADD ACTIVITY LOG
-========================================================= */
+  document.querySelectorAll(".threat").forEach(button => {
+    const selected = button.dataset.threat === key;
+    button.classList.toggle("selected", selected);
+    button.setAttribute("aria-pressed", String(selected));
+  });
 
-function addLog(
-    type,
+  ui.infoTitle.textContent = threat.name;
+  ui.infoDescription.textContent = threat.description;
+  ui.infoCategory.textContent = threat.category;
+  ui.infoSpread.textContent = threat.spread;
+  ui.infoPrevention.textContent = threat.prevention;
+}
+
+function addEvent(title, message, type = "info") {
+  eventCount++;
+
+  eventHistory.unshift({
+    time: new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false
+    }),
+    title,
     message,
-    className = ""
-) {
+    type
+  });
 
-    const log =
-        document.getElementById(
-            "activityLog"
-        );
+  if (eventHistory.length > 100) eventHistory.pop();
 
+  renderEvents();
+  updateStats();
+}
 
-    const item =
-        document.createElement("div");
+function renderEvents() {
+  ui.log.innerHTML = "";
 
+  if (!eventHistory.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty";
+    empty.textContent = "No events yet. Start a simulation.";
+    ui.log.appendChild(empty);
+    return;
+  }
 
-    item.className =
-        `log-item ${className}`;
+  eventHistory.forEach(item => {
+    const row = document.createElement("div");
+    row.className = "event";
 
+    const time = document.createElement("div");
+    time.className = "event-time";
+    time.textContent = item.time;
 
-    const time =
-        new Date().toLocaleTimeString(
-            [],
-            {
-                hour: "2-digit",
-                minute: "2-digit",
-                second: "2-digit"
-            }
-        );
+    const content = document.createElement("div");
+    const title = document.createElement("div");
+    title.className = "event-title";
+    title.textContent = item.title;
 
-
-    item.innerHTML = `
-
-        <span class="log-time">
-            ${time}
-        </span>
-
-        <span>
-            [${type}] ${message}
-        </span>
-
-    `;
-
-
-    log.appendChild(item);
-
-
-    while (
-        log.children.length > 8
-    ) {
-
-        log.removeChild(
-            log.firstChild
-        );
+    if (item.type === "warning") {
+      const badge = document.createElement("em");
+      badge.textContent = "ALERT";
+      title.appendChild(badge);
     }
 
+    const message = document.createElement("p");
+    message.textContent = item.message;
 
-    log.scrollTop =
-        log.scrollHeight;
+    content.append(title, message);
+    row.append(time, content);
+    ui.log.appendChild(row);
+  });
 }
 
+function toast(message) {
+  clearTimeout(toastTimer);
+  ui.toast.textContent = message;
+  ui.toast.classList.add("show");
 
-/* =========================================================
-   RANDOM PC
-========================================================= */
+  toastTimer = setTimeout(() => {
+    ui.toast.classList.remove("show");
+  }, 2400);
+}
+
+function resetSimulation(clearHistory = true) {
+  token++;
+  cancelTimers();
+
+  running = false;
+  completed = false;
+  infected.clear();
+  hostPC = null;
+
+  for (let pc = 1; pc <= TOTAL_PCS; pc++) {
+    setPCState(pc, "online");
+  }
+
+  ui.start.disabled = false;
+  ui.start.textContent = "▶  Start Simulation";
+  ui.hint.textContent = "Choose a threat, then start the simulation.";
+  setNetworkStatus("● READY TO SIMULATE");
+
+  if (clearHistory) {
+    eventHistory = [];
+    eventCount = 0;
+    renderEvents();
+  }
+
+  updateStats();
+  requestAnimationFrame(() => {
+    drawLAN();
+  });
+}
+
+function selectThreat(key) {
+  if (!threats[key]) return;
+
+  resetSimulation(true);
+  updateThreatInfo(key);
+  toast(`${threats[key].name} selected`);
+}
 
 function randomPC() {
-
-    return randomNumber(
-        1,
-        totalPCs
-    );
+  return Math.floor(Math.random() * TOTAL_PCS) + 1;
 }
 
+async function infectPC(pc, runToken, source = false) {
+  if (runToken !== token) return false;
 
-/* =========================================================
-   RANDOM NUMBER
-========================================================= */
+  infected.add(pc);
+  setPCState(pc, "infected");
+  updateStats();
+  updateLAN(pc);
 
-function randomNumber(
-    min,
-    max
-) {
+  addEvent(
+    source ? "Initial infection detected" : "LAN infection detected",
+    `${pcName(pc)} marked infected in the browser simulation.`,
+    "warning"
+  );
 
-    return Math.floor(
-        Math.random() *
-        (max - min + 1)
-    ) + min;
+  return true;
 }
 
+async function startSimulation() {
+  if (running) return;
 
-/* =========================================================
-   SHUFFLE ARRAY
-========================================================= */
+  if (completed) resetSimulation(true);
 
-function shuffle(array) {
+  running = true;
+  completed = false;
 
-    const result =
-        [...array];
+  const runToken = ++token;
+  const selectedThreat = currentThreat;
 
+  ui.start.disabled = true;
+  ui.start.textContent = "◌  Simulation Running";
+  ui.hint.textContent = "Simulating threat activity...";
+  setNetworkStatus("● INITIALIZING NETWORK", "running");
 
-    for (
-        let i = result.length - 1;
-        i > 0;
-        i--
-    ) {
+  addEvent(
+    "Simulation started",
+    `${threats[selectedThreat].name} visual scenario initialized.`
+  );
 
-        const j =
-            Math.floor(
-                Math.random() *
-                (i + 1)
-            );
+  const valid = await wait(450, runToken);
+  if (!valid) return;
 
+  if (selectedThreat === "virus") {
+    // Random host PC is selected automatically.
+    // Host stays yellow and is excluded from infection.
+    hostPC = randomPC();
+    setPCState(hostPC, "host");
 
-        [
-            result[i],
-            result[j]
-        ] =
-        [
-            result[j],
-            result[i]
-        ];
-    }
-
-
-    return result;
-}
-
-
-/* =========================================================
-   CLEAR TIMERS
-========================================================= */
-
-function clearTimers() {
-
-    simulationTimers.forEach(
-        timer => {
-
-            clearTimeout(timer);
-
-            clearInterval(timer);
-
-        }
+    setNetworkStatus(
+      `HOST = ${pcName(hostPC)} · SPREADING TO 11 PCs`,
+      "host"
     );
 
+    addEvent(
+      "Host PC selected",
+      `${pcName(hostPC)} is the randomly selected host and will remain secure.`
+    );
 
-    simulationTimers = [];
+    const targets = [];
+    for (let pc = 1; pc <= TOTAL_PCS; pc++) {
+      if (pc !== hostPC) targets.push(pc);
+    }
+
+    // Start with nearby PCs, then spread through the whole grid.
+    const order = targets.sort((a, b) => {
+      const distanceA =
+        Math.abs(((a - 1) % 4) - ((hostPC - 1) % 4)) +
+        Math.abs(Math.floor((a - 1) / 4) -
+                 Math.floor((hostPC - 1) / 4));
+
+      const distanceB =
+        Math.abs(((b - 1) % 4) - ((hostPC - 1) % 4)) +
+        Math.abs(Math.floor((b - 1) / 4) -
+                 Math.floor((hostPC - 1) / 4));
+
+      return distanceA - distanceB;
+    });
+
+    for (let i = 0; i < order.length; i++) {
+      const ok = await wait(260, runToken);
+      if (!ok) return;
+
+      await infectPC(order[i], runToken);
+      if (runToken !== token) return;
+    }
+
+    // Reassert host state after the full spread.
+    setPCState(hostPC, "host");
+
+    addEvent(
+      "Virus spread completed",
+      `11 PCs infected. ${pcName(hostPC)} remains the secure host.`
+    );
+
+    setNetworkStatus(
+      `✓ VIRUS SPREAD COMPLETED · HOST ${pcName(hostPC)}`,
+      "host"
+    );
+  }
+
+  if (selectedThreat === "worm") {
+    hostPC = null;
+
+    setNetworkStatus("● WORM SPREAD IN PROGRESS", "running");
+
+    addEvent(
+      "Worm propagation started",
+      "All 12 virtual PCs will be marked infected in sequence."
+    );
+
+    // Shuffle the order so the spread begins at a random workstation.
+    const order = Array.from(
+      { length: TOTAL_PCS }, (_, i) => i + 1
+    );
+    order.sort(() => Math.random() - 0.5);
+
+    for (let i = 0; i < order.length; i++) {
+      const ok = await wait(300, runToken);
+      if (!ok) return;
+
+      await infectPC(order[i], runToken, i === 0);
+      if (runToken !== token) return;
+    }
+
+    addEvent(
+      "LAN spread completed",
+      "All 12 virtual PCs are marked infected."
+    );
+
+    setNetworkStatus("✓ ALL 12 PCs INFECTED · LAN SPREAD COMPLETE", "infected");
+  }
+
+  if (selectedThreat === "trojan") {
+    hostPC = null;
+
+    const target = randomPC();
+
+    setNetworkStatus("● TROJAN SCENARIO IN PROGRESS", "running");
+
+    addEvent(
+      "Trojan scenario started",
+      "One random virtual workstation will be marked infected."
+    );
+
+    const ok = await wait(750, runToken);
+    if (!ok) return;
+
+    await infectPC(target, runToken, true);
+    if (runToken !== token) return;
+
+    addEvent(
+      "Trojan simulation completed",
+      `${pcName(target)} is infected. The other 11 PCs remain online.`
+    );
+
+    setNetworkStatus(`✓ ONLY ${pcName(target)} INFECTED`, "infected");
+  }
+
+  if (runToken !== token) return;
+
+  running = false;
+  completed = true;
+
+  ui.start.disabled = false;
+  ui.start.textContent = "↻  Run Again";
+  ui.hint.textContent =
+    "Simulation complete. Restart to clear the current states.";
+
+  updateStats();
+  updateLAN();
+  toast("Simulation completed");
 }
 
+function restartSimulation() {
+  resetSimulation(true);
+  setNetworkStatus("● READY TO SIMULATE");
+  addEvent(
+    "Network reset",
+    "All 12 virtual PCs have returned to their online state."
+  );
+  toast("Network reset successfully");
+}
 
-/* =========================================================
-   INITIAL PAGE
-========================================================= */
+function changeThreat() {
+  const modes = ["virus", "worm", "trojan"];
+  const next = (modes.indexOf(currentThreat) + 1) % modes.length;
+  selectThreat(modes[next]);
+}
 
-document.addEventListener(
-    "DOMContentLoaded",
-    () => {
+document.querySelectorAll(".threat").forEach(button => {
+  button.addEventListener("click", () => {
+    selectThreat(button.dataset.threat);
+  });
+});
 
-        document
-            .getElementById("homePage")
-            .classList.add("active");
+ui.start.addEventListener("click", startSimulation);
+ui.restart.addEventListener("click", restartSimulation);
+ui.change.addEventListener("click", changeThreat);
 
-    }
-);
+ui.clearLog.addEventListener("click", () => {
+  eventHistory = [];
+  eventCount = 0;
+  renderEvents();
+  updateStats();
+  toast("Event log cleared");
+});
+
+window.addEventListener("resize", () => {
+  requestAnimationFrame(drawLAN);
+});
+
+if ("ResizeObserver" in window) {
+  const observer = new ResizeObserver(() => drawLAN());
+  observer.observe(ui.map);
+}
+
+$("year").textContent = new Date().getFullYear();
+
+createPCs();
+renderEvents();
+updateStats();
+updateThreatInfo("virus");
